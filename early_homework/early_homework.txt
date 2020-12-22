@@ -1,0 +1,77 @@
+create type gender as enum ('M', 'F');
+
+alter type gender owner to postgres;
+
+create table posts
+(
+    id                     serial      not null
+        constraint posts_pkey
+            primary key,
+    name                   varchar(30) not null,
+    allowance_for_10_years real,
+    allowance_for_20_years real,
+    allowance_for_30_years real,
+    allowance_for_hazard   real
+);
+
+alter table posts
+    owner to postgres;
+
+create table departments
+(
+    id              serial      not null
+        constraint departments_pkey
+            primary key,
+    name            varchar(30) not null,
+    code            integer     not null,
+    employees_count integer
+        constraint departments_employees_count_check
+            check (employees_count >= 0),
+    header_id       integer
+);
+
+alter table departments
+    owner to postgres;
+
+create table employees
+(
+    id            serial      not null
+        constraint employees_pkey
+            primary key,
+    firstname     varchar(20) not null,
+    lastname      varchar(20) not null,
+    patronymic    varchar(20) not null,
+    gender        gender      not null,
+    birthdate     date        not null,
+    age           integer default age(birthdate),
+    department_id integer
+        constraint employees_department_id_fkey
+            references departments,
+    experience    integer
+        constraint employees_experience_check
+            check (experience >= 0),
+    hazard        boolean,
+    post_id       integer
+        constraint employees_post_id_fkey
+            references posts
+);
+
+alter table employees
+    owner to postgres;
+
+alter table departments
+    add constraint departments_header_id_fkey
+        foreign key (header_id) references employees;
+
+create function age(birthdate date) returns integer
+    immutable
+    language plpgsql
+as
+$$
+begin
+    return extract(year from current_date) - extract(year from birthdate);
+end
+$$;
+
+alter function age(date) owner to postgres;
+
